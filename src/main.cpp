@@ -7,81 +7,66 @@
 #include "spo2_algorithm.h"
 #include <StarterKitNB.h>
 
-// Este código esta diseñado para leer signos vitales (RPM, BPM, Temperatura y SpO2) con una BaseBoard RAK19001 y un procesador Espressif ESP32-WROVER. El código considera el uso
-// de 2 sensores y 3 modulos RAK.
-
-// Sensores:
-// - Sensor cardiaco MAX30102. El código debería funcionar con cualquier sensor de la familia MAX3010x. Este sensor se encarga de medir BPM, Temperatura y SpO2. Utiliza el protocolo I2C y debe
-// 							conectarse a los pines default de la board. Es alimentado con 3.3V
-
-// - Sensor de fuerza SF15-600. Este sensor es una simple resistencia variable dependiente de la tension de su superficie. El código debería funcionar con cualquier sensor que cumpla estas
-//                              caracteristicas. Este se conecta al módulo RAK 4-20 mA. Por un lado a la salida 12V del módulo. Y por el otro a la conexion A1. Este sensor se encarga de calcular RPM.
-
-// Módulos:
-// - Módulo 4-20 mA RAK5801. Utilizad para comunicarse con SF15-600.
-
-// - Módulo Buzzer RAK18001. No implementado hasta ahora
-
-// - Módulo NB-IoT RAK5860. Utilizado para conectarse a la red NB de Entel.
-
-
-// El programa inicializa todos los sensores y realiza una medicion con cada sensor. Revisa que las 4 mediciones sean correctas. En caso de ser correctas envía el mensaje a ThingsBoard con los datos.
-// En caso de ser valores fuera de rangos. Se hace un nuevo intento. En total se llegan a hacer 4 intentos de medir. En caso de no lograr ninguna medición. El programa envía "-1" para poder ser interpretado como
-// medicion erronea. Después de esto el programa duerme por el tiempo deseado (10 minutos) para realizar una nueva medicion. 
-
-//Objetos
+//Objetos y constantes generales
 
 MAX30105 particleSensor; //Sensor BPM
 StarterKitNB sk; //Modulo NB
 
+int delay_medicion = 300000; //Tiempo (ms) de delay entre mediciones
+
 //Constantes para modulo 4-20 mA
 
-int NO_OF_SAMPLES = 128; //Configura la cantidad de sampleos para una medicion
-int rpmRead; //Para guardar medicion RPM
+int NO_OF_SAMPLES = 128; //Cantidad de sampleos para una medicion de modulo 4-20 mA
+int rpmRead; //Valor medicion RPM
 
 //Constantes para sensor BPM
 
-int min_bpm = 20; //Rangos para que la medicion de beats per minute sea considerada aceptable
-int max_bpm = 250;
+int bpm_time = 30000; //Tiempo de medicion bpm
+int spo2_time = 30000; //Tiempo de medicion spo2
 
-float min_temp = 20; //Rangos para que medicion de temperatura sea aceptable
-float max_temp = 60;
+int min_bpm = 20; //Valor minimo aceptable BPM
+int max_bpm = 250; //Valor maximo aceptable BPM
 
-int bpmRead; //Para guardar medicion BPM
-int tempRead; //Para guardar medicion Temperatura
-int fingerRead; //Para guardar medicion Presencia Dedo
+float min_temp = 20; //Valor minimo aceptable TEMPERATURA
+float max_temp = 60; //Valor maximo aceptable TEMPERATURA
+
+int bpmRead; //Valor medicion BPM
+int tempRead; //Valor medicion TEMP
+int fingerRead; //Valor validacion dedo
 
 //Constantes Avg BPM
 
 const byte RATE_SIZE = 4; //Cantidad de samples que se utilizan para una medicion
 byte rates[RATE_SIZE]; //Arreglo de medicion
 byte rateSpot = 0;
-long lastBeat = 0; //Para guardar el tiempo en que se midio el ultimo latido
+long lastBeat = 0; //Tiempo de ultimo latido detectado
 
-float beatsPerMinute; //Para guardar BPM
-int beatAvg; //Para guardar AvgBPM
+float beatsPerMinute; //Variable temporal de BPM
+int beatAvg; //Valor medicion AvgBPM
 
 //Constantes SpO2
 
 #define MAX_BRIGHTNESS 255
 
-uint32_t irBuffer[100]; //Array para medidas sensor IR
-uint32_t redBuffer[100];  //Array para medidas sensor LED ROJO
+uint32_t irBuffer[100]; //Array valores sensor IR
+uint32_t redBuffer[100];  //Array valores sensor LED ROJO
 
 int32_t bufferLength; //Variables auxiliares
-int32_t spo2; //Para guardar spo2
-int8_t validSPO2; //Indica si la medicion es valida
-int32_t heartRate; //Para guardar heart rate (NO SE UTILIZA, PERO SE NECESITA PARA LA FUNCION DE SPO2)
-int8_t validHeartRate; //Inidica si la medicion es valida
+int32_t spo2; //Valor medicion SpO2
+int8_t validSPO2; //Validador medicion SpO2
+int32_t heartRate; //Valor medicion heartRate
+int8_t validHeartRate; //Validacion medicion heartRate
 
-int spo2Read;
+int spo2Read; //Valor medicion SpO2
 
 //Constantes para sensor fuerza
 
-int min_rpm = 3; //Rangos para que la medicion de RPM se considere aceptable
-int max_rpm = 120;
+int rpm_time = 30000; //Tiempo de medicion RPM
 
-float threshold = 1000; //Nivel de fuerza en que se considera una respiracion
+int min_rpm = 3; //Valor minimo aceptable RPM
+int max_rpm = 120; //Valor maximo aceptable RPM
+
+float threshold = 1000; //Nivel minimo para considerar una respiracion
 
 //Constantes NB
 
@@ -96,16 +81,15 @@ String password = "55555";
 
 //Constantes Buzzer
 
-#define BUZZER_CONTROL WB_IO4;
+// #define BUZZER_CONTROL WB_IO4;
 
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-///////////////////////////
-//FUNCIONES DE INICIACION//
-///////////////////////////
 
-void init_bpm() { //Inicio sensor BPM
+// Funcion para iniciar sensor BPM
+// None -> None
+void init_bpm() { 
 
 	Serial.println("Iniciando sensor BPM");
 
@@ -114,12 +98,12 @@ void init_bpm() { //Inicio sensor BPM
 		Serial.println("No se ha encontrado el sensor MAX30102. Revisa el cableado. \n");
 	}
 
-	particleSensor.setup(); //Configura sensor a configurcion default
+	particleSensor.setup(); 
 	particleSensor.setPulseAmplitudeRed(0x0A);
-	particleSensor.setPulseAmplitudeGreen(0); //Apaga LED verde
-	particleSensor.enableDIETEMPRDY(); //Permite leer la temperatura del sensor
+	particleSensor.setPulseAmplitudeGreen(0); 
+	particleSensor.enableDIETEMPRDY(); 
 
-	time_t timeout = millis(); //Debug
+	time_t timeout = millis();
 	while (!Serial)
 	{
 		if ((millis() - timeout) < 5000)
@@ -135,34 +119,37 @@ void init_bpm() { //Inicio sensor BPM
 	Serial.print("Sensor BPM iniciado con exito \n \n");
 }
 
-void init_current() { //Inicio modulo corriente 4-20 mA
+// Funcion para iniciar modulo 4-20 mA
+// None -> None
+void init_current() { 
 
 	Serial.print("\nIniciando modulo de corriente \n");
 
-	pinMode(WB_IO1, OUTPUT | PULLUP); //Configura pines para modulo 4-20 mA
+	pinMode(WB_IO1, OUTPUT | PULLUP); //En esta configuracion se cambio la libreria para utilizar el IO2 e IO3
 	digitalWrite(WB_IO1, HIGH);
 	adcAttachPin(WB_A1);
 	analogSetAttenuation(ADC_11db);
 	analogReadResolution(12);
 
 	Serial.print("Modulo de corriente iniciado con exito \n \n");
-
 }
 
+
+// Funcion para iniciar conexion NB
+// None -> None
 void init_comms(){ //Inicio conecion NB Entel
 
-    sk.Setup(true); //Conexion a red NB
+    sk.Setup(true); 
 	delay(500);
 	sk.UserAPN(apn,user,pw);
 	delay(500);
 	sk.Connect(apn);
 }
 
-/////////////////////////////
-//Funciones de Comunicacion//
-/////////////////////////////
 
-void sendMsg() { //Funcion para enviar mensaje
+// Funcion para enviar mensaje
+// String -> None
+void sendMsg(String msg) { 
 
 	if (!sk.ConnectionStatus()) //Chequea conexion a red NB
 	{
@@ -174,23 +161,22 @@ void sendMsg() { //Funcion para enviar mensaje
 		sk.ConnectBroker(clientId,userName,password);
 	}
 	
-	sk.SendMessage(msg); //Envia mensaje
+	sk.SendMessage(msg); 
 }
 
-////////////////////////////////////
-// Funcion Medicion de Temperatura//
-////////////////////////////////////
 
+// Funcion para obtener valor temperatura
+// None -> int
 int getTemperature() {
 
 	Serial.print("Iniciando medicion de temperatura \n");
 	
-	particleSensor.setup(0); //Configura sensor con todas las LED apagadas para que medicion sea mas precisa
+	particleSensor.setup(0); //LEDS off
 	delay(3000);
 
-	float temperature = particleSensor.readTemperature(); //Obtiene valor temperatura de sensor BPM
+	float temperature = particleSensor.readTemperature(); 
 
-	if (temperature > min_temp && temperature < max_temp) { //Chequea que valor este dentro de rango esperado
+	if (temperature > min_temp && temperature < max_temp) { //Validacion
 		Serial.print("Medicion de temperatura realizada: " + String(temperature) + "\n \n");
 		particleSensor.setup();
 		return temperature;
@@ -201,46 +187,44 @@ int getTemperature() {
 	}
 }
 
-///////////////////////////////////////////
-// Funcion determinacion si hay dedo o no//
-///////////////////////////////////////////
 
+// Funcion para validar deteccion de paciente
+// None -> int
 int getFinger() {
 
-	long irValue = particleSensor.getIR(); //Obtiene valor infrarojo sensor BPM
+	long irValue = particleSensor.getIR();
 
-	if (irValue > 50000) { //Chequea que este valor sea mayor a 50000. Lo cual implica que hay un dedo o algo a alta temperatura en el sensor
+	if (irValue > 50000) { //Validacion
 		return 1;
 	} else {
 		return 0;
 	}
 }
 
-////////////////////////////////
-//Funcion Ritmo Cardiaco (BPM)//
-////////////////////////////////
 
+// Funcion para obtener AvgBPM
+// None -> int
 int getAvgBPM() {
-	if (getFinger() == 1){ //Inicia medicion si detecta dedo
+	if (getFinger() == 1){ 
 
 		Serial.print("Iniciando medicion BPM \n");
 
-		int end_time = millis() + 30000; //Tiempo para medicion (30 segundos) (Quizas hacerla soft coded)
+		int end_time = millis() + bpm_time; 
 
-		while (millis() < end_time) { //Inicia medicion durante 30 segundos
+		while (millis() < end_time) { 
 
-			long irValue = particleSensor.getIR(); //Obtiene valor IR
+			long irValue = particleSensor.getIR(); 
 
-			if (checkForBeat(irValue) == true) //Detecta si hay latido
+			if (checkForBeat(irValue) == true) //Validacion
 			{
 				long delta = millis() - lastBeat;
-				lastBeat = millis(); //Calcula el tiempo desde el ultimo latido 
+				lastBeat = millis(); 
 
 				beatsPerMinute = 60 / (delta / 1000.0); //Obtiene valor BPM
 
-				if (beatsPerMinute < max_bpm && beatsPerMinute > min_bpm) //Chequea rango de medicion
+				if (beatsPerMinute < max_bpm && beatsPerMinute > min_bpm) //Validacion 
 				{
-				rates[rateSpot++] = (byte)beatsPerMinute; //Guarda en array
+				rates[rateSpot++] = (byte)beatsPerMinute; 
 				rateSpot %= RATE_SIZE; 
 
 				
@@ -252,7 +236,7 @@ int getAvgBPM() {
 			}
 		}
 
-		Serial.print("Medicion finalizada: " + String(beatAvg) + "\n \n"); //Returns
+		Serial.print("Medicion finalizada: " + String(beatAvg) + "\n \n"); 
 		return beatAvg;
 	} else {
 		Serial.print("Medicion fallida. Dedo no detectado \n \n");
@@ -260,10 +244,9 @@ int getAvgBPM() {
 	}
 }
 
-//////////////////////////////////////////
-//Funciones Saturacion de Oxigeno (SpO2)//
-//////////////////////////////////////////
 
+// Funcion para configurar sensor BPM para medir SpO2
+// None -> None
 void setupSpO2() {
 	byte ledBrightness = 60; //Options: 0=Off to 255=50mA
 	byte sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
@@ -275,56 +258,56 @@ void setupSpO2() {
 	particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange);
 }
 
+
+// Funcion para medir SpO2
+// None -> int 
 int getSpO2() {
 
 	Serial.print("Iniciando medicion de SpO2 \n");
 
 	setupSpO2();
-	int end_time = millis() + 30000;
+	int end_time = millis() + spo2_time;
 
-	bufferLength = 100; //buffer length of 100 stores 4 seconds of samples running at 25sps
+	bufferLength = 100; //buffer de mediciones
 
-	//read the first 100 samples, and determine the signal range
-	for (byte i = 0 ; i < bufferLength ; i++)
+	
+	for (byte i = 0 ; i < bufferLength ; i++) //Guarda primeras 100 muestras
 	{
-		while (particleSensor.available() == false) //do we have new data?
-		particleSensor.check(); //Check the sensor for new data
+		while (particleSensor.available() == false) 
+		particleSensor.check(); 
 
 		redBuffer[i] = particleSensor.getRed();
 		irBuffer[i] = particleSensor.getIR();
-		particleSensor.nextSample(); //We're finished with this sample so move to next sample
+		particleSensor.nextSample(); 
 	}
 
-	//calculate heart rate and SpO2 after first 100 samples (first 4 seconds of samples)
+	//Calcula SpO2 sobre primeras 100 muestras
 	maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
 	
 	while (millis() < end_time){
-		//dumping the first 25 sets of samples in the memory and shift the last 75 sets of samples to the top
-		for (byte i = 25; i < 100; i++)
+
+		for (byte i = 25; i < 100; i++) //Borra 25 muestras mas antiguas
 		{
 		redBuffer[i - 25] = redBuffer[i];
 		irBuffer[i - 25] = irBuffer[i];
 		}
 
-		//take 25 sets of samples before calculating the heart rate.
-		for (byte i = 75; i < 100; i++)
+		for (byte i = 75; i < 100; i++) //Toma 25 nuevas muestras
 		{
-		while (particleSensor.available() == false) //do we have new data?
-			particleSensor.check(); //Check the sensor for new data
+		while (particleSensor.available() == false)
+			particleSensor.check(); 
 
 
 		redBuffer[i] = particleSensor.getRed();
 		irBuffer[i] = particleSensor.getIR();
-		particleSensor.nextSample(); //We're finished with this sample so move to next sample
-
-		//send samples and calculation result to terminal program through UART
+		particleSensor.nextSample(); 
 		}
 
-		//After gathering 25 new samples recalculate HR and SP02
+		//Con 25 nuevas muestras, recalcula SpO2
 		maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
 	}
 
-	if (validHeartRate == 1 && validSPO2 == 1) {
+	if (validHeartRate == 1 && validSPO2 == 1) { //Validacion
 		Serial.print("Medicion realizada: " + String(spo2) + "\n \n");
 		return spo2;
 	} else {
@@ -333,13 +316,13 @@ int getSpO2() {
 	}
 }
 
-///////////////////////////
-//Funciones Sensor Fuerza//
-///////////////////////////
 
+// Funcion para obtener muestra de corriente de modulo 4-20 mA
+// None -> float
 float getCurrentRead() {
 
-    int i; //Seteo de constantes y variables para medicion
+	//Variables auxiliares
+    int i; 
 	int sensor_pin = WB_A1; 
 	int mcu_ain_raw = 0;
 	int average_adc_raw;
@@ -357,9 +340,12 @@ float getCurrentRead() {
 	return current_sensor;
 }
 
-int getRPM() {
 
-    int t_resp_final = millis() + 30000; //
+// Funcion para obtener RPM
+// None -> float
+float getRPM() {
+
+    int t_resp_final = millis() + rpm_time; //
     float current = 0;
     int resp = 0;
     int resp_status = 0;
@@ -381,15 +367,19 @@ int getRPM() {
         }
     }
 
-	if (resp*2 > min_rpm && resp*2 < max_rpm) {
-		Serial.print("Medicion RPM realizada con exito: " + String(resp*2) + "\n \n");
-		return resp*2; 
+	float final_rpm = resp*(60000/rpm_time);
+
+	if (final_rpm > min_rpm && final_rpm < max_rpm) {
+		Serial.print("Medicion RPM realizada con exito: " + String(final_rpm) + "\n \n");
+		return final_rpm; 
 	} else {
 		Serial.print("Medicion RPM incorrecta. Revise que se encuentre bien instalado el sensor RPM \n \n");
 		return -1;
 	}
 	
 }
+
+
 
 ////////////////////
 //Funciones Buzzer//                               NO IMPLEMENTADAS
@@ -432,12 +422,18 @@ int getRPM() {
 //Sleep Mode//
 //////////////
 
-void enterSleep() {  //Esto entra en modo maximo de ahorro de bateria
+
+// Funcion para poner el sistema en modo hibernacion
+// None -> None
+void enterSleep() { 
 	Serial.print("Se ha iniciado el modo hibernacion \n \n");
 	particleSensor.shutDown();
 }
 
-void awakeDevice() { //Esto despierta todo lo que fue puesto en modo sleep
+
+// Funcion para despertar al sistema de modo hibernacion
+// None -> None
+void awakeDevice() {
 	Serial.print("Se ha despertado al dispositivo \n \n");
 	particleSensor.wakeUp();
 	init_bpm();
@@ -508,13 +504,13 @@ void loop() {
 
 	msg = "{\"temp\": " +String(tempRead)+ ",\"bpm\": " +String(bpmRead)+ ",\"finger\": " +String(fingerRead)+ ",\"rpm\": " +String(rpmRead)+ ",\"spo2\": " +String(spo2Read)+ ", \"status\": " + String(error_status)+ "}";
 
-	init_comms();
-	sendMsg();
+	init_comms(); //Se hace aca porque disminuye los problemas de comunicacion...
+	sendMsg(msg);
 	Serial.print("\n \n"+ msg + "\n \n");
 
 	enterSleep();
 	
-	delay(2000);
+	delay(delay_medicion);
 }
 
 /////////////////////////////////////////////////////
