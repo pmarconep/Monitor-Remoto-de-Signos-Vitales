@@ -2,14 +2,17 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <StarterKitNB.h>
 #include "MAX30105.h"
 #include "heartRate.h"
 #include "spo2_algorithm.h"
 
 
+
 //Objetos y constantes generales
 
 MAX30105 particleSensor; //Sensor BPM
+StarterKitNB sk;
 
 int delay_medicion = 300000; //Tiempo (ms) de delay entre mediciones
 
@@ -128,6 +131,18 @@ void init_current() {
 	analogReadResolution(12);
 
 	Serial.print("Modulo de corriente iniciado con exito \n \n");
+}
+
+
+// Funcion para iniciar conexion NB
+// None -> None
+
+void init_comms() {
+	sk.Setup(true);
+	delay(500);
+	sk.UserAPN(apn,user,pw);
+	delay(500);
+	sk.Connect(apn);
 }
 
 
@@ -447,7 +462,9 @@ void loop() {
 
 	Serial.print("\n \n"+ msg + "\n \n");
 
-	sleepDevice();
-	
+	init_comms();
+	sendMsg(msg);
+
+	sleepDevice();	
 	delay(delay_medicion);
 }
