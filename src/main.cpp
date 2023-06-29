@@ -5,13 +5,11 @@
 #include "MAX30105.h"
 #include "heartRate.h"
 #include "spo2_algorithm.h"
-#include <StarterKitNB.h>
 
 
 //Objetos y constantes generales
 
 MAX30105 particleSensor; //Sensor BPM
-StarterKitNB sk; //Modulo NB
 
 int delay_medicion = 300000; //Tiempo (ms) de delay entre mediciones
 
@@ -130,18 +128,6 @@ void init_current() {
 	analogReadResolution(12);
 
 	Serial.print("Modulo de corriente iniciado con exito \n \n");
-}
-
-
-// Funcion para iniciar conexion NB
-// None -> None
-void init_comms(){ //Inicio conecion NB Entel
-
-    sk.Setup(true); 
-	delay(500);
-	sk.UserAPN(apn,user,pw);
-	delay(500);
-	sk.Connect(apn);
 }
 
 
@@ -459,8 +445,6 @@ void loop() {
 
 	msg = "{\"temp\": " +String(tempRead)+ ",\"bpm\": " +String(bpmRead)+ ",\"finger\": " +String(fingerRead)+ ",\"rpm\": " +String(rpmRead)+ ",\"spo2\": " +String(spo2Read)+ ", \"status\": " + String(error_status)+ "}";
 
-	init_comms(); //Se hace aca porque disminuye los problemas de comunicacion...
-	sendMsg(msg);
 	Serial.print("\n \n"+ msg + "\n \n");
 
 	sleepDevice();
