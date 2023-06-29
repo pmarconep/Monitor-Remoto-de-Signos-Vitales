@@ -7,6 +7,7 @@
 #include "spo2_algorithm.h"
 #include <StarterKitNB.h>
 
+
 //Objetos y constantes generales
 
 MAX30105 particleSensor; //Sensor BPM
@@ -14,10 +15,11 @@ StarterKitNB sk; //Modulo NB
 
 int delay_medicion = 300000; //Tiempo (ms) de delay entre mediciones
 
+
 //Constantes para modulo 4-20 mA
 
 int NO_OF_SAMPLES = 128; //Cantidad de sampleos para una medicion de modulo 4-20 mA
-int rpmRead; //Valor medicion RPM
+
 
 //Constantes para sensor BPM
 
@@ -34,6 +36,7 @@ int bpmRead; //Valor medicion BPM
 int tempRead; //Valor medicion TEMP
 int fingerRead; //Valor validacion dedo
 
+
 //Constantes Avg BPM
 
 const byte RATE_SIZE = 4; //Cantidad de samples que se utilizan para una medicion
@@ -43,6 +46,7 @@ long lastBeat = 0; //Tiempo de ultimo latido detectado
 
 float beatsPerMinute; //Variable temporal de BPM
 int beatAvg; //Valor medicion AvgBPM
+
 
 //Constantes SpO2
 
@@ -59,6 +63,7 @@ int8_t validHeartRate; //Validacion medicion heartRate
 
 int spo2Read; //Valor medicion SpO2
 
+
 //Constantes para sensor fuerza
 
 int rpm_time = 30000; //Tiempo de medicion RPM
@@ -67,6 +72,9 @@ int min_rpm = 3; //Valor minimo aceptable RPM
 int max_rpm = 120; //Valor maximo aceptable RPM
 
 float threshold = 1000; //Nivel minimo para considerar una respiracion
+
+float rpmRead; //Valor medicion RPM
+
 
 //Constantes NB
 
@@ -78,13 +86,6 @@ String pw = "entelpcs";
 String clientId = "grupo5";
 String userName = "55555";
 String password = "55555";
-
-//Constantes Buzzer
-
-// #define BUZZER_CONTROL WB_IO4;
-
-//////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////
 
 
 // Funcion para iniciar sensor BPM
@@ -104,14 +105,11 @@ void init_bpm() {
 	particleSensor.enableDIETEMPRDY(); 
 
 	time_t timeout = millis();
-	while (!Serial)
-	{
-		if ((millis() - timeout) < 5000)
-		{
+
+	while (!Serial) {
+		if ((millis() - timeout) < 5000) {
             delay(100);
-        }
-        else
-        {
+        } else {
             break;
         }
 	}
@@ -205,7 +203,7 @@ int getFinger() {
 // Funcion para obtener AvgBPM
 // None -> int
 int getAvgBPM() {
-	if (getFinger() == 1){ 
+	if (getFinger() == 1) { 
 
 		Serial.print("Iniciando medicion BPM \n");
 
@@ -215,8 +213,7 @@ int getAvgBPM() {
 
 			long irValue = particleSensor.getIR(); 
 
-			if (checkForBeat(irValue) == true) //Validacion
-			{
+			if (checkForBeat(irValue) == true) { //Validacion
 				long delta = millis() - lastBeat;
 				lastBeat = millis(); 
 
@@ -286,21 +283,20 @@ int getSpO2() {
 	
 	while (millis() < end_time){
 
-		for (byte i = 25; i < 100; i++) //Borra 25 muestras mas antiguas
-		{
-		redBuffer[i - 25] = redBuffer[i];
-		irBuffer[i - 25] = irBuffer[i];
+		for (byte i = 25; i < 100; i++) { //Borra 25 muestras mas antiguas
+			redBuffer[i - 25] = redBuffer[i];
+			irBuffer[i - 25] = irBuffer[i];
 		}
 
-		for (byte i = 75; i < 100; i++) //Toma 25 nuevas muestras
-		{
-		while (particleSensor.available() == false)
-			particleSensor.check(); 
+		for (byte i = 75; i < 100; i++) { //Toma 25 nuevas muestras
+	
+			while (particleSensor.available() == false)
+				particleSensor.check(); 
 
 
-		redBuffer[i] = particleSensor.getRed();
-		irBuffer[i] = particleSensor.getIR();
-		particleSensor.nextSample(); 
+			redBuffer[i] = particleSensor.getRed();
+			irBuffer[i] = particleSensor.getIR();
+			particleSensor.nextSample(); 
 		}
 
 		//Con 25 nuevas muestras, recalcula SpO2
@@ -329,10 +325,10 @@ float getCurrentRead() {
 	float voltage_mcu_ain; 
 	float current_sensor;
 
-    for (i = 0; i < NO_OF_SAMPLES; i++) //Obtiene medicion de NO_OF_SAMPLES cantidad de sampleos
-	{
+    for (i = 0; i < NO_OF_SAMPLES; i++) { //Obtiene medicion de NO_OF_SAMPLES cantidad de sampleos
 		mcu_ain_raw += analogRead(sensor_pin);
 	}
+
 	average_adc_raw = mcu_ain_raw / NO_OF_SAMPLES; //Promedia valor de los sampleos
 
 	current_sensor = average_adc_raw / 149.9*1000;
@@ -380,52 +376,9 @@ float getRPM() {
 }
 
 
-
-////////////////////
-//Funciones Buzzer//                               NO IMPLEMENTADAS
-////////////////////
-
-// void error_nofinger() { //Genera sonido de error en buzzer
- 
-// }
-
-// void error_nobpm() {
-
-// }
-
-// void error_nocomms() {
-
-// }
-
-// void error_rpm() {
-
-// }
-
-// void install_mode() { //Ruido para identificar que se esta en install mode
-
-// }
-
-// void normal_mode() { //Ruido para identificar que se entro a modo normal
-
-// }
-
-
-// //Sensor Analogo de dolor
-
-// //Install Mode
-
-// void installTester() {
-// 	//Loop en que se confirme que estan todos los sensores funcionando correctamente
-// }
-
-//////////////
-//Sleep Mode//
-//////////////
-
-
 // Funcion para poner el sistema en modo hibernacion
 // None -> None
-void enterSleep() { 
+void sleepDevice() { 
 	Serial.print("Se ha iniciado el modo hibernacion \n \n");
 	particleSensor.shutDown();
 }
@@ -437,6 +390,29 @@ void awakeDevice() {
 	Serial.print("Se ha despertado al dispositivo \n \n");
 	particleSensor.wakeUp();
 	init_bpm();
+}
+
+
+// Funcion para chequear errores de medicion
+// float, int, int, int -> Bool
+bool checkForError(float rpmRead, int bpmRead, int tempRead, int spo2Read) {
+	if (bpmRead < 0) {
+		return true;
+	}
+
+	if (rpmRead < 0) {
+		return true;
+	}
+
+	if (tempRead < 0) {
+		return true;
+	}
+
+	if (spo2Read < 0) {
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -467,36 +443,15 @@ void loop() {
 	while (attemps < 4) {
 		init_current();
 		rpmRead = getRPM();
+
 		init_bpm();
 		bpmRead = getAvgBPM();
 		tempRead = getTemperature();
 		spo2Read = getSpO2();
 		fingerRead = getFinger();
 
-		error_status = 0;
-
-		if (bpmRead < 0) {
-			error_status = 1;
-			//error_nobpm();
-		}
-
-		if (rpmRead < 0) {
-			error_status = 1;
-			//error_rpm();
-		}
-
-		if (tempRead < 0) {
-			error_status = 1;
-			//error_nofinger();
-		}
-
-		if (spo2Read < 0) {
-			error_status = 1;
-			//error_nobpm();
-		}
-
-		if (error_status == 1) {
-			++attemps;
+		if (checkForError(rpmRead,bpmRead,tempRead,spo2Read)) { //Validacion 
+			++attemps; //Se hace un nuevo intento
 		} else {
 			break;
 		}
@@ -508,9 +463,7 @@ void loop() {
 	sendMsg(msg);
 	Serial.print("\n \n"+ msg + "\n \n");
 
-	enterSleep();
+	sleepDevice();
 	
 	delay(delay_medicion);
 }
-
-/////////////////////////////////////////////////////
