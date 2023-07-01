@@ -81,12 +81,12 @@ float rpmRead; //Valor medicion RPM
 
 String msg = "";
 
-String apn = "m2m.entel.cl";
-String user = "entelpcs";
-String pw = "entelpcs";
-String clientId = "grupo5";
-String userName = "55555";
-String password = "55555";
+String apn = "";
+String user = "";
+String pw = "";
+String clientId = "";
+String userName = "";
+String password = "";
 
 
 // Funcion para iniciar sensor BPM
