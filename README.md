@@ -10,8 +10,8 @@ de 2 modulos RAK y 2 sensores.
 - Módulo NB-IoT RAK5860. Utilizado para conectarse a la red NB de Entel.
 
 ## Sensores
-- Sensor cardiaco MAX30102. El código debería funcionar con cualquier sensor de la familia MAX3010x. Este sensor se encarga de medir BPM, Temperatura y SpO2 (solo algunos de los sensores MAX3010x soportan SpO2). Este sensor utiliza el protocolo I2C y debe conectarse a los pines default de I2C de la board. Es alimentado con 3.3V. https://lastminuteengineers.com/max30102-pulse-oximeter-heart-rate-sensor-arduino-tutorial/#:~:text=MAX30102%20Module%20Pinout,-The%20MAX30102%20module&text=You%20can%20connect%20it%20to,an%20interrupt%20for%20each%20pulse
-
+- Sensor cardiaco MAX30102. El código debería funcionar con cualquier sensor de la familia MAX3010x. Este sensor se encarga de medir BPM, Temperatura y SpO2 (solo algunos de los sensores MAX3010x soportan SpO2). Este sensor utiliza el protocolo I2C (SDA y SCL) y debe conectarse a los pines default de I2C de la board. Es alimentado con 3.3V.
+  
 ![image](https://github.com/pmarconep/Monitor-Remoto-de-Signos-Vitales/assets/49997440/297f6314-ea26-46cc-abbf-30506f8fde7e)
 
 - Sensor de fuerza SF15-600. Este sensor es una simple resistencia variable dependiente de la tension de su superficie. El código debería funcionar con cualquier sensor que cumpla estas caracteristicas. Este sensor tiene dos pines. Uno se conecta al módulo RAK 4-20 mA mediante el pin A1 para realizar una medición análoga del sensor. El ssegundo se alimenta con 12V, pin de voltaje que ofrece módulo 4-20 mA. Este sensor se utiliza para medir frecuencia respiratoria (RPM).
@@ -40,3 +40,19 @@ El programa mide 7 variables con los distintos sensores y envía estas mediante 
 - Status de Medición (error_status): 0 si es que todas las mediciones están dentro de rangos esperados. 1 si algúna medición se detecta erronea después de los 3 intentos.
   
 - Nivel de Batería (battery_percentage): Entrega el porcentaje de batería disponible en el dispositvo.
+
+## Links
+
+- Tutorial como conectar con MAX301x - https://lastminuteengineers.com/max30102-pulse-oximeter-heart-rate-sensor-arduino-tutorial/#:~:text=MAX30102%20Module%20Pinout,-The%20MAX30102%20module&text=You%20can%20connect%20it%20to,an%20interrupt%20for%20each%20pulse
+
+- Datasheet MAX30102 - https://www.analog.com/media/en/technical-documentation/data-sheets/MAX30102.pdf
+  
+- Datasheet SF15-600 - https://xonstorage.blob.core.windows.net/pdf/4158958_SF1560010kg_link.pdf
+
+- Datasheet RAK19001 - https://docs.rakwireless.com/Product-Categories/WisBlock/RAK19001/Datasheet/
+
+- Datahseet ESP32-WROVER - https://docs.rakwireless.com/Product-Categories/WisBlock/RAK11200/Datasheet/
+
+- Datasheet RAK5801 (4-20 mA) - https://docs.rakwireless.com/Product-Categories/WisBlock/RAK5801/Datasheet/
+
+- Datasheet RAK5860 (Narrow Band) - https://docs.rakwireless.com/Product-Categories/WisBlock/RAK5860/Datasheet/
