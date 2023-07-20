@@ -14,7 +14,12 @@
 MAX30105 particleSensor; //Sensor BPM
 StarterKitNB sk;
 
-int delay_medicion = 300000; //Tiempo (ms) de delay entre mediciones
+#define PIN_VBAT WB_A0 //Pin para medir bateria
+#define VBAT_MV_PER_LSB (0.73242188F) // 3.0V ADC range and 12 - bit ADC resolution = 3000mV / 4096
+#define VBAT_DIVIDER_COMP (1.73)      // Compensation factor for the VBAT divider, depend on the board
+#define REAL_VBAT_MV_PER_LSB (VBAT_DIVIDER_COMP * VBAT_MV_PER_LSB)
+
+int delay_medicion = 0; //Tiempo (ms) de delay entre mediciones
 
 
 //Constantes para modulo 4-20 mA
@@ -72,8 +77,6 @@ int rpm_time = 30000; //Tiempo de medicion RPM
 int min_rpm = 3; //Valor minimo aceptable RPM
 int max_rpm = 120; //Valor maximo aceptable RPM
 
-float threshold = 1000; //Nivel minimo para considerar una respiracion
-
 float rpmRead; //Valor medicion RPM
 
 
@@ -123,13 +126,10 @@ void init_bpm() {
 void init_current() { 
 
 	Serial.print("\nIniciando modulo de corriente \n");
-
-	pinMode(WB_IO1, OUTPUT | PULLUP); //En esta configuracion se cambio la libreria para utilizar el IO2 e IO3
+	pinMode(WB_IO1, OUTPUT); //En esta configuracion se cambio la libreria para utilizar el IO2 e IO3
 	digitalWrite(WB_IO1, HIGH);
 	adcAttachPin(WB_A1);
 	analogSetAttenuation(ADC_11db);
-	analogReadResolution(12);
-
 	Serial.print("Modulo de corriente iniciado con exito \n \n");
 }
 
@@ -337,10 +337,30 @@ float getCurrentRead() {
 	return current_sensor;
 }
 
+// Funcion para obtener threshold de corriente de modulo 4-20 mA para medicion
+// None -> int
+
+int getThreshold() {
+	int t_final = millis() + 5000;
+	int min_current = 0;
+
+	while (millis() < t_final)
+	{
+		int currentRead = getCurrentRead();
+		if (currentRead < min_current) {
+			min_current = currentRead;
+		}
+	}
+	
+	return min_current + 400;
+}
 
 // Funcion para obtener RPM
 // None -> float
 float getRPM() {
+	Serial.print("Calculando Threshold \n");
+	int threshold = getThreshold();
+	Serial.print("Threshold Calculado \n");
 
     int t_resp_final = millis() + rpm_time; //
     float current = 0;
@@ -351,6 +371,8 @@ float getRPM() {
 
     while (millis() < t_resp_final) {
         current = getCurrentRead();
+
+		Serial.print(String(current) + "\n");
 
         if (current <= threshold) {
             resp_status = 0;
@@ -441,11 +463,9 @@ void loop() {
 
 	awakeDevice();
 
-	while (attemps < 4) {
+	while (attemps < 3) {
 		init_current();
 		rpmRead = getRPM();
-
-		init_bpm();
 		bpmRead = getAvgBPM();
 		tempRead = getTemperature();
 		spo2Read = getSpO2();
@@ -458,7 +478,16 @@ void loop() {
 		}
 	}
 
-	msg = "{\"temp\": " +String(tempRead)+ ",\"bpm\": " +String(bpmRead)+ ",\"finger\": " +String(fingerRead)+ ",\"rpm\": " +String(rpmRead)+ ",\"spo2\": " +String(spo2Read)+ ", \"status\": " + String(error_status)+ "}";
+	float battery_percentage = round(analogRead(PIN_VBAT)* REAL_VBAT_MV_PER_LSB)/37;
+
+	msg = 
+	"{\"temp\": " +String(tempRead)
+	+ ",\"bpm\": " +String(bpmRead)
+	+ ",\"finger\": " +String(fingerRead)
+	+ ",\"rpm\": " +String(rpmRead)
+	+ ",\"spo2\": " +String(spo2Read)
+	+ ",\"status\": " +String(error_status)
+	+ ",\"battery\": " +String(battery_percentage) + "}";
 
 	Serial.print("\n \n"+ msg + "\n \n");
 
