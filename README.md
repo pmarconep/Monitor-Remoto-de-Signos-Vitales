@@ -26,7 +26,9 @@ El core del programa realiza mediciones de todas las variables. Posterior a esto
 
 Cuando ya envía el mensaje, sea con mediciones exitosas o fallidas, espera el tiempo definido definido en delay_medicion
 
-El programa mide 7 variables con los distintos sensores y envía estas mediante Narrow Band:
+El programa mide 7 variables con los distintos sensores y envía estas mediante Narrow Band.
+
+Para el funcionamiento de la comunicación Narrow Band, se debe tener la librería "StarterKitNB", y se debe modificar la ruta a esta libreria en el archivo "platformio.ini".
 
 ### Sensor MAX3010x
 - Frecuencia Cardiaca (bpmRead): Realiza la medición durante 30 segundos para obtener un buen promedio.
