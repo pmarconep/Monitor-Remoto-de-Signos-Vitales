@@ -16,7 +16,7 @@ de 2 modulos RAK y 2 sensores.
 ## Sensores
 - Sensor cardiaco MAX30102. El código debería funcionar con cualquier sensor de la familia MAX3010x. Este sensor se encarga de medir BPM, Temperatura y SpO2 (solo algunos de los sensores MAX3010x soportan SpO2). Este sensor utiliza el protocolo I2C (SDA y SCL) y debe conectarse a los pines default de I2C de la board. Es alimentado con 3.3V.
   
-![image](https://github.com/pmarconep/Monitor-Remoto-de-Signos-Vitales/assets/49997440/297f6314-ea26-46cc-abbf-30506f8fde7e)
+![Screenshot 2023-07-20 123352](https://github.com/pmarconep/Monitor-Remoto-de-Signos-Vitales-Grupo-5/assets/49997440/962f52e7-2624-4122-9e9f-2242309dd279)
 
 - Sensor de fuerza SF15-600. Este sensor es una simple resistencia variable dependiente de la tension de su superficie. El código debería funcionar con cualquier sensor que cumpla estas caracteristicas. Este sensor tiene dos pines. Uno se conecta al módulo RAK 4-20 mA mediante el pin A1 para realizar una medición análoga del sensor. El ssegundo se alimenta con 12V, pin de voltaje que ofrece módulo 4-20 mA. Este sensor se utiliza para medir frecuencia respiratoria (RPM).
 
