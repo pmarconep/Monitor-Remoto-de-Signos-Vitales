@@ -3,6 +3,11 @@
 Este código esta diseñado para leer signos vitales (RPM, BPM, Temperatura y SpO2) con una BaseBoard RAK19001 y un procesador Espressif ESP32-WROVER. El código considera el uso
 de 2 modulos RAK y 2 sensores.
 
+## Datos de contacto
+- Pascual Marcone - pascual.marcone@ug.uchile.cl
+- Ignacio Díaz - ignacio.diaz.cuevas@ug.uchile.cl
+- Juan Pablo Contreras - juan.contreras.v@ug.uchile.cl
+
 ## Módulos
 - Módulo 4-20 mA RAK5801. Utilizad para comunicarse con SF15-600.
 
