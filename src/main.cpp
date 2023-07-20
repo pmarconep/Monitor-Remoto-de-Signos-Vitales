@@ -127,7 +127,7 @@ void init_current() {
 
 	Serial.print("\nIniciando modulo de corriente \n");
 	pinMode(WB_IO1, OUTPUT); //En esta configuracion se cambio la libreria para utilizar el IO2 e IO3
-	digitalWrite(WB_IO1, HIGH);
+	digitalWrite(WB_IO1, HIGH); //Se debe subir el pin ya que la libreria StarterKitNB baja este pin. Es necesario para la alimentacion del modulo
 	adcAttachPin(WB_A1);
 	analogSetAttenuation(ADC_11db);
 	Serial.print("Modulo de corriente iniciado con exito \n \n");
